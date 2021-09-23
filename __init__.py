@@ -77,7 +77,14 @@ def prediction(current_meds, prior_cancer, percent_pos_biopsies, perineural_inva
         treatment = 3
 
 
+    prediction_prob = classifier.predict_proba([[current_meds, prior_cancer, percent_pos_biopsies, perineural_invasion, psa, t_stage,\
+                risk_category, treatment, age, gleason_grade]])
 
+    print(prediction_prob)
+    ix = prediction_prob.argmax(1).item()
+
+    classes = ['Patient does not relapse', 'Patient relapses in 5 years', 'Patient relapses in 10 years']
+    result_text = f'{classes[ix]} and confidence is {prediction_prob[0,ix]:.2%}'
  
     # Making predictions 
     prediction = classifier.predict( 
@@ -88,21 +95,23 @@ def prediction(current_meds, prior_cancer, percent_pos_biopsies, perineural_inva
     #     pred = 'Rejected'
     # else:
     #     pred = 'Approved'
-    return prediction
+    return prediction, result_text
       
   
 def main():
            
     # front end elements of the web page 
     html_temp = """ 
-    <div style ="background-color:#e84343;padding:13px"> 
+    <div style ="padding:13px"> 
     <h1 style ="color:black;text-align:center;">Bio-Chemical Recurrence Prediction</h1> 
     </div> 
     """
       
     # display the front end aspect
-    st.markdown(html_temp, unsafe_allow_html = True) 
-      
+    # st.markdown(html_temp, unsafe_allow_html = True) 
+    st.title("Bio-Chemical Recurrence Prediction")
+    st.sidebar.title("Patient Details")
+    st.sidebar.text("Please fill in the details")
     # following lines create boxes in which user can enter data required to make prediction 
     current_meds = st.sidebar.selectbox('Current Medications',("Yes", "No", "Not Obtained/Unkown"))
     prior_cancer = st.sidebar.selectbox('Prior Cancer',("Yes","No")) 
@@ -120,14 +129,14 @@ def main():
 
     result =""
 
-    st.sidebar.header("Patient Details")
-    st.sidebar.text("Please fill in the details of the patient")
+
 
     # when 'Predict' is clicked, make the prediction and store it 
     if st.sidebar.button("Predict"): 
-        result = prediction(current_meds, prior_cancer, percent_pos_biopsies, perineural_invasion, psa, t_stage,\
+        result, result_text = prediction(current_meds, prior_cancer, percent_pos_biopsies, perineural_invasion, psa, t_stage,\
                 risk_category, treatment, age, gleason_grade) 
-        st.success('BCR Category {}'.format(result))
+        # st.success('BCR Category {}'.format(result))
+        st.success('{}'.format(result_text))
 
         
         
