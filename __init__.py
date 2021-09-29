@@ -1,8 +1,13 @@
 #%%writefile app.py
 
 import pickle
-
 import streamlit as st
+from matplotlib import pyplot as plt
+import pandas as pd
+
+plt.rcParams["figure.figsize"] = [10, 3.50]
+plt.rcParams["figure.autolayout"] = True
+
 
 # loading the trained model
 pickle_in = open('bcr_model.pkl', 'rb') 
@@ -64,7 +69,7 @@ def prediction(current_meds, prior_cancer, percent_pos_biopsies, perineural_inva
     elif risk_category == "Intermediate Risk":
         risk_category = 2
     else:
-        risk_category = 3 # not obtained
+        risk_category = 3 #high risk
     
     # Treatment
     if treatment == "SEED":
@@ -95,20 +100,12 @@ def prediction(current_meds, prior_cancer, percent_pos_biopsies, perineural_inva
     #     pred = 'Rejected'
     # else:
     #     pred = 'Approved'
-    return prediction, result_text
+    return prediction, result_text, classes, prediction_prob
       
   
 def main():
            
-    # front end elements of the web page 
-    html_temp = """ 
-    <div style ="padding:13px"> 
-    <h1 style ="color:black;text-align:center;">Bio-Chemical Recurrence Prediction</h1> 
-    </div> 
-    """
-      
-    # display the front end aspect
-    # st.markdown(html_temp, unsafe_allow_html = True) 
+
     st.title("Bio-Chemical Recurrence Prediction")
     st.sidebar.title("Patient Details")
     st.sidebar.text("Please fill in the details")
@@ -133,10 +130,25 @@ def main():
 
     # when 'Predict' is clicked, make the prediction and store it 
     if st.sidebar.button("Predict"): 
-        result, result_text = prediction(current_meds, prior_cancer, percent_pos_biopsies, perineural_invasion, psa, t_stage,\
+        result, result_text, classes, prediction_prob = prediction(current_meds, prior_cancer, percent_pos_biopsies, perineural_invasion, psa, t_stage,\
                 risk_category, treatment, age, gleason_grade) 
         # st.success('BCR Category {}'.format(result))
-        st.success('{}'.format(result_text))
+
+        st.title("Prediction results:")
+        df = pd.DataFrame({"Classes":classes,
+                  "PredictionConfidence":list(map(lambda s: round(s*100,2) , prediction_prob[0]))})
+        df_sorted = df.sort_values('PredictionConfidence')
+        
+        plt.barh('Classes','PredictionConfidence',data=df_sorted, color="Blue")
+        for index, value in enumerate(df_sorted['PredictionConfidence'].values):
+            plt.text(value, index, str(value))
+        plt.xlabel('Confidence %')
+        st.set_option('deprecation.showPyplotGlobalUse', False)
+        st.pyplot()
+        # st.text('{} and confidence is {}'.format(classes[0], round(prediction_prob[0][0]*100, 2)))
+        # st.text('{} and confidence is {}'.format(classes[1], round(prediction_prob[0][1]*100, 2)))
+        # st.text('{} and confidence is {}'.format(classes[2], round(prediction_prob[0][2]*100, 2)))
+
 
         
         
